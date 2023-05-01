@@ -1,0 +1,1 @@
+# certmagic-vault-storage
