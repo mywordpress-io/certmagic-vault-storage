@@ -38,8 +38,6 @@ func TestVaultStorageSuite(test *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	Printf("===> Got approleRoleId: %s\n", approleRoleId)
-	Printf("===> Got approleSecretId: %s\n", approleSecretId)
 	customLockTimeout := vaultStorage.Duration(15 * time.Second)
 	customLockPollingDuration := vaultStorage.Duration(5 * time.Second)
 	storage = vaultStorage.NewStorage(vaultStorage.StorageConfig{
