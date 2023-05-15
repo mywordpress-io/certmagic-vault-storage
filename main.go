@@ -115,6 +115,8 @@ type Storage struct {
 }
 
 func (s *Storage) Store(_ context.Context, key string, value []byte) error {
+	logger.Zap.Debugw("Store() at url", "url", Sprintf("%s%s", s.vaultBaseUrl(), s.vaultDataPath(key)))
+
 	secret := &certificateSecret{
 		Certmagic: certMagicCertificateSecret{Data: value},
 	}
@@ -148,6 +150,8 @@ func (s *Storage) Store(_ context.Context, key string, value []byte) error {
 }
 
 func (s *Storage) Load(_ context.Context, key string) ([]byte, error) {
+	logger.Zap.Debugw("Load() from url", "url", Sprintf("%s%s", s.vaultBaseUrl(), s.vaultDataPath(key)))
+
 	result := &response{}
 	errResponse := &errorResponse{}
 	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
@@ -181,6 +185,8 @@ func (s *Storage) Load(_ context.Context, key string) ([]byte, error) {
 }
 
 func (s *Storage) Delete(_ context.Context, key string) error {
+	logger.Zap.Debugw("Delete() at url", "url", Sprintf("%s%s", s.vaultBaseUrl(), s.vaultMetadataPath(key)))
+
 	result := &response{}
 	errResponse := &errorResponse{}
 	resp, err := s.client.SetToken(s.getToken()).Delete(s.vaultMetadataPath(key), result, errResponse)
@@ -214,6 +220,8 @@ func (s *Storage) Delete(_ context.Context, key string) error {
 }
 
 func (s *Storage) Exists(_ context.Context, key string) bool {
+	logger.Zap.Debugw("Exists() at url", "url", Sprintf("%s%s", s.vaultBaseUrl(), s.vaultDataPath(key)))
+
 	result := &response{}
 	errResponse := &errorResponse{}
 	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
@@ -236,6 +244,8 @@ func (s *Storage) Exists(_ context.Context, key string) bool {
 //     - When recursive==false, we ONLY include item that do NOT have a trailing slash
 //     - When recursive==true, we include ALL items from the specified prefix that do NOT have a trailing slash
 func (s *Storage) List(ctx context.Context, prefix string, recursive bool) ([]string, error) {
+	logger.Zap.Debugw("List() at url", "url", Sprintf("%s%s", s.vaultBaseUrl(), s.vaultMetadataPath(prefix)), "recursive", recursive)
+
 	result := &listResponse{}
 	errResponse := &errorResponse{}
 	resp, err := s.client.SetToken(s.getToken()).List(s.vaultMetadataPath(prefix), result, errResponse)
@@ -254,17 +264,21 @@ func (s *Storage) List(ctx context.Context, prefix string, recursive bool) ([]st
 	// Recursively list all items in vault
 	items := make([]string, 0)
 	for _, entry := range result.Data.Keys {
-		if !strings.HasSuffix(entry, "/") {
-			items = append(items, Sprintf("%s%s", prefix, entry))
+		var path string
+		if strings.HasSuffix(prefix, "/") {
+			path = Sprintf("%s%s", prefix, entry)
 		} else {
-			if recursive {
-				results, err := s.List(ctx, Sprintf("%s%s", prefix, entry), recursive)
-				if err != nil {
-					return []string{}, err
-				}
+			path = Sprintf("%s/%s", prefix, entry)
+		}
 
-				items = append(items, results...)
+		items = append(items, path)
+		if recursive && strings.HasSuffix(entry, "/") {
+			results, err := s.List(ctx, path, recursive)
+			if err != nil {
+				return []string{}, err
 			}
+
+			items = append(items, results...)
 		}
 	}
 
@@ -277,6 +291,8 @@ func (s *Storage) List(ctx context.Context, prefix string, recursive bool) ([]st
 }
 
 func (s *Storage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error) {
+	logger.Zap.Debugw("Stat() at url", "url", Sprintf("%s%s", s.vaultBaseUrl(), s.vaultDataPath(key)))
+
 	// Get the secret
 	result := &response{}
 	errResponse := &errorResponse{}
@@ -440,6 +456,10 @@ func (s *Storage) vaultErrorString(resp *errorResponse) string {
 	}
 
 	return ""
+}
+
+func (s *Storage) SetLogger(sugaredLogger *zap.SugaredLogger) {
+	logger.Zap = sugaredLogger
 }
 
 // Interface guard
