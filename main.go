@@ -19,7 +19,6 @@ var (
 )
 
 func NewStorage(config StorageConfig) *Storage {
-	logger.Setup(config.getLogLevel(), "certmagic-vault-storage")
 	storage := &Storage{
 		StorageConfig: config,
 		client:        client.NewClient(config.InsecureSkipVerify).SetHostUrl(config.vaultBaseUrl()),
@@ -82,22 +81,10 @@ type StorageConfig struct {
 	// Locking mechanism
 	LockTimeout         *Duration `json:"lock_timeout"`
 	LockPollingInterval *Duration `json:"lock_polling_interval"`
-
-	// Internal logging config
-	LogLevel string `json:"log_level"`
 }
 
 func (c *StorageConfig) vaultBaseUrl() string {
 	return Sprintf("%s/v1/", c.URL)
-}
-
-func (c *StorageConfig) getLogLevel() zap.AtomicLevel {
-	level, err := zap.ParseAtomicLevel(c.LogLevel)
-	if err != nil || c.LogLevel == "" {
-		return zap.NewAtomicLevelAt(zap.InfoLevel)
-	}
-
-	return level
 }
 
 // Storage is the main object passed to CertMagic that implements the "Storage" interface.
