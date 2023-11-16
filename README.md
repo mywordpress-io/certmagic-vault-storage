@@ -26,9 +26,9 @@ import (
 func Setup() {
 	certmagic := certmagic.NewDefault()
 	
-	// This is the base configuration object used by certmagic_vault_storage--you can either use the one specified in
-	// the caddy_vault_storage repo, or roll your own (as long as it satisfies the
-	// certmagic_vault_storage.StorageConfigInterface interface.
+	// This is the base configuration object used by certmagic_vault_storage--you can either use the
+	// one specified in the caddy_vault_storage repo, or roll your own (as long as it satisfies the
+	// certmagic_vault_storage.StorageConfigInterface interface).
 	customLockTimeout := certmagic_vault_storage.Duration(60 * time.Second)
 	customLockPollingDuration := certmagic_vault_storage.Duration(5 * time.Second)
 	caddyStorage := &caddy_vault_storage.Storage{
