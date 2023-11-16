@@ -19,23 +19,30 @@ For standalone usage in your own go module:
 package main
 
 import (
-	certMagicVaultStorage "github.com/mywordpress-io/certmagic-vault-storage"
+	"github.com/mywordpress-io/certmagic-vault-storage"
+	"github.com/mywordpress-io/caddy-vault-storage"
 )
 
 func Setup() {
 	certmagic := certmagic.NewDefault()
+	
+	// This is the base configuration object used by certmagic_vault_storage--you can either use the one specified in
+	// the caddy_vault_storage repo, or roll your own (as long as it satisfies the
+	// certmagic_vault_storage.StorageConfigInterface interface.
+	customLockTimeout := certmagic_vault_storage.Duration(60 * time.Second)
+	customLockPollingDuration := certmagic_vault_storage.Duration(5 * time.Second)
+	caddyStorage := &caddy_vault_storage.Storage{
+		URL:                 certmagic_vault_storage.MustParseURL("http://localhost:8200"),
+		Token:               "dead-beef",
+		SecretsPath:         "secrets",
+		PathPrefix:          "certificates",
+		LockTimeout:         &customLockTimeout,
+		LockPollingInterval: &customLockPollingDuration,
+		InsecureSkipVerify:  false,
+	}
 
 	// Specify your setting to certMagicVaultStorage here, and assign the Storage provider to CertMagic:
-	certmagic.Storage = certMagicVaultStorage.NewStorage(certMagicVaultStorage.StorageConfig{
-		URL:                certMagicVaultStorage.MustParseURL("https://vault.example.org:8201"),
-		SecretsPath:        "secrets",
-		PathPrefix:         "production/certificates",
-		InsecureSkipVerify: true,
-		Token:              "baad-f00d",
-		ApproleRoleId:      "dead-beef", // Required if 'token' empty
-		ApproleSecretId:    "ea7-beef",  // Required if 'token' empty
-		LogLevel:           "info",
-	})
+	certmagic.Storage = certmagic_vault_storage.NewStorage(caddyStorage)
 	
 	// Now do other operations with 'certmagic' as you normally would:
 	certmagic.Issuers = ...

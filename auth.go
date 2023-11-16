@@ -3,7 +3,6 @@ package certmagic_vault_storage
 import (
 	. "fmt"
 	"github.com/dustin/go-humanize"
-	"github.com/mywordpress-io/certmagic-vault-storage/internal/logger"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
@@ -53,17 +52,17 @@ type approleLoginInput struct {
 
 // getToken prefers to return a static 'Token' value, otherwise it returns the approle token
 func (s *Storage) getToken() string {
-	if s.Token != "" {
-		logger.Zap.Debug("Using static Vault token for auth")
-		return s.Token
+	if s.config.GetToken() != "" {
+		s.logger.Debug("Using static Vault token for auth")
+		return s.config.GetToken()
 	}
 
 	if s.approleResponse != nil {
 		if !s.approleTokenExpired() {
-			logger.Zap.Debug("Using approle client token for auth")
+			s.logger.Debug("Using approle client token for auth")
 			return s.approleResponse.Auth.ClientToken
 		} else {
-			logger.Zap.Warnw("Approle client token expired",
+			s.logger.Warnw("Approle client token expired",
 				"expired", humanize.Time(*s.approleTokenExpiration),
 			)
 		}
@@ -73,20 +72,20 @@ func (s *Storage) getToken() string {
 		return ""
 	}
 
-	logger.Zap.Debug("Using newly created approle token for auth")
+	s.logger.Debug("Using newly created approle token for auth")
 	return s.approleResponse.Auth.ClientToken
 }
 
 func (s *Storage) login() error {
-	logger.Zap.Info("Logging in to vault using approle credentials")
+	s.logger.Info("Logging in to vault using approle credentials")
 	result := &successResponse{}
 	errResponse := &errorResponse{}
-	body := &approleLoginInput{RoleId: s.ApproleRoleId, SecretId: s.ApproleSecretId}
-	response, err := s.client.SetHostUrl(s.vaultBaseUrl()).ApproleLogin(s.ApproleLoginPath, body, result, errResponse)
+	body := &approleLoginInput{RoleId: s.config.GetApproleRoleId(), SecretId: s.config.GetApproleSecretId()}
+	response, err := s.client.SetHostUrl(s.config.GetVaultBaseUrl()).ApproleLogin(s.config.GetApproleLoginPath(), body, result, errResponse)
 	if err != nil {
-		logger.Zap.Errorw(
+		s.logger.Errorw(
 			"[ERROR] during vault login using approle credentials",
-			"url", Sprintf("%s%s", s.vaultBaseUrl(), s.ApproleLoginPath),
+			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
 			"error", err.Error(),
 			"vault_errors", s.vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
@@ -96,9 +95,9 @@ func (s *Storage) login() error {
 	}
 
 	if response.IsError() {
-		logger.Zap.Errorw(
+		s.logger.Errorw(
 			"[ERROR] during vault login using approle credentials",
-			"url", Sprintf("%s%s", s.vaultBaseUrl(), s.ApproleLoginPath),
+			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
 			"vault_errors", s.vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
 			"response_body", response.String(),
@@ -122,11 +121,11 @@ func (s *Storage) logout() error {
 	body := &struct{}{}
 	result := &successResponse{}
 	errResponse := &errorResponse{}
-	response, err := s.client.SetHostUrl(s.vaultBaseUrl()).SetToken(s.getToken()).ApproleLogout(s.ApproleLogoutPath, body, result, errResponse)
+	response, err := s.client.SetHostUrl(s.config.GetVaultBaseUrl()).SetToken(s.getToken()).ApproleLogout(s.config.GetApproleLogoutPath(), body, result, errResponse)
 	if err != nil {
-		logger.Zap.Errorw(
+		s.logger.Errorw(
 			"[ERROR] during vault login using approle credentials",
-			"url", Sprintf("%s%s", s.vaultBaseUrl(), s.ApproleLoginPath),
+			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
 			"error", err.Error(),
 			"vault_errors", s.vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
@@ -136,9 +135,9 @@ func (s *Storage) logout() error {
 	}
 
 	if response.IsError() {
-		logger.Zap.Errorw(
+		s.logger.Errorw(
 			"[ERROR] during vault login using approle credentials",
-			"url", Sprintf("%s%s", s.vaultBaseUrl(), s.ApproleLoginPath),
+			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
 			"vault_errors", s.vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
 			"response_body", response.String(),
