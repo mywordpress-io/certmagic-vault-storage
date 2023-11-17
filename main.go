@@ -35,7 +35,9 @@ func NewStorage(config StorageConfigInterface) *Storage {
 	s := new(Storage)
 	s.config = config
 	s.logger = config.GetLogger()
-	s.client = client.NewClient(s.config.GetInsecureSkipVerify()).SetHostUrl(s.config.GetVaultBaseUrl())
+	s.client = client.NewClient(s.logger, config.GetVaultBaseUrl(), config.GetInsecureSkipVerify(),
+		config.GetToken(), config.GetApproleLoginPath(), config.GetApproleLogoutPath(),
+		config.GetApproleRoleId(), config.GetApproleSecretId())
 	return s
 }
 
@@ -45,12 +47,6 @@ type Storage struct {
 
 	// client is the API client making requests to Vault
 	client *client.Client
-
-	// approleResponse is the successful response from Vault after logging in using ApproleRoleId/ApproleSecretId
-	approleResponse *successResponse
-
-	// approleTokenExpiration the future date when the token expires
-	approleTokenExpiration *time.Time
 
 	// logger Zap sugared logger
 	logger *zap.SugaredLogger
@@ -63,14 +59,14 @@ func (s *Storage) Store(_ context.Context, key string, value []byte) error {
 		Certmagic: certMagicCertificateSecret{Data: value},
 	}
 	result := &response{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Post(s.vaultDataPath(key), secret, result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.Post(s.vaultDataPath(key), secret, result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to store certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -81,7 +77,7 @@ func (s *Storage) Store(_ context.Context, key string, value []byte) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to store certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -95,14 +91,14 @@ func (s *Storage) Load(_ context.Context, key string) ([]byte, error) {
 	s.logger.Debugw("Load() from url", "url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)))
 
 	result := &response{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.Get(s.vaultDataPath(key), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to load certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -113,7 +109,7 @@ func (s *Storage) Load(_ context.Context, key string) ([]byte, error) {
 		s.logger.Errorw(
 			"[ERROR] Unable to load certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -130,14 +126,14 @@ func (s *Storage) Delete(_ context.Context, key string) error {
 	s.logger.Debugw("Delete() at url", "url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultMetadataPath(key)))
 
 	result := &response{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Delete(s.vaultMetadataPath(key), result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.Delete(s.vaultMetadataPath(key), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to delete certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -148,7 +144,7 @@ func (s *Storage) Delete(_ context.Context, key string) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to delete certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -165,8 +161,8 @@ func (s *Storage) Exists(_ context.Context, key string) bool {
 	s.logger.Debugw("Exists() at url", "url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)))
 
 	result := &response{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.Get(s.vaultDataPath(key), result, errResponse)
 	if err != nil {
 		return false
 	}
@@ -189,14 +185,14 @@ func (s *Storage) List(ctx context.Context, prefix string, recursive bool) ([]st
 	s.logger.Debugw("List() at url", "operation", "list", "url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultMetadataPath(prefix)), "recursive", recursive)
 
 	result := &listResponse{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).List(s.vaultMetadataPath(prefix), result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.List(s.vaultMetadataPath(prefix), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to list certificates",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultMetadataPath(prefix)),
 			"error", err.Error(),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -240,14 +236,14 @@ func (s *Storage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error)
 
 	// Get the secret
 	result := &response{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.Get(s.vaultDataPath(key), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to stat certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -258,7 +254,7 @@ func (s *Storage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error)
 		s.logger.Errorw(
 			"[ERROR] Unable to stat certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -281,14 +277,14 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 	for {
 		// Get the secret
 		getResult := &response{}
-		errResponse := &errorResponse{}
-		resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(lock), getResult, errResponse)
+		errResponse := &client.ErrorResponse{}
+		resp, err := s.client.Get(s.vaultDataPath(lock), getResult, errResponse)
 		if err != nil {
 			s.logger.Errorw(
 				"[ERROR] Unable to get lock",
 				"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(lock)),
 				"error", err.Error(),
-				"vault_errors", vaultErrorString(errResponse),
+				"vault_errors", client.VaultErrorString(errResponse),
 				"response_code", resp.StatusCode(),
 				"response_body", resp.String(),
 			)
@@ -321,14 +317,14 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 		Certmagic: certMagicCertificateSecret{Lock: (*Time)(&expiration)},
 	}
 	result := &response{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Post(s.vaultDataPath(lock), secret, result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.Post(s.vaultDataPath(lock), secret, result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to create lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(lock)),
 			"error", err.Error(),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -339,7 +335,7 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to create lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -352,14 +348,14 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 func (s *Storage) Unlock(_ context.Context, key string) error {
 	lock := Sprintf("%s.lock", key)
 	result := &response{}
-	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Delete(s.vaultMetadataPath(lock), result, errResponse)
+	errResponse := &client.ErrorResponse{}
+	resp, err := s.client.Delete(s.vaultMetadataPath(lock), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to remove lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(lock)),
 			"error", err.Error(),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -370,7 +366,7 @@ func (s *Storage) Unlock(_ context.Context, key string) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to remove lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", vaultErrorString(errResponse),
+			"vault_errors", client.VaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -389,14 +385,6 @@ func (s *Storage) vaultDataPath(key string) string {
 
 func (s *Storage) vaultMetadataPath(key string) string {
 	return vaultCertMagicCertificateMetadataPathFormat.String(s.config.GetSecretsPath(), s.config.GetPathPrefix(), key)
-}
-
-func vaultErrorString(resp *errorResponse) string {
-	if len(resp.Errors) > 0 {
-		return resp.Error().Error()
-	}
-
-	return ""
 }
 
 // Interface guard
