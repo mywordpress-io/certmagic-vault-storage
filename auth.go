@@ -87,7 +87,7 @@ func (s *Storage) login() error {
 			"[ERROR] during vault login using approle credentials",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
 			"response_body", response.String(),
 		)
@@ -98,7 +98,7 @@ func (s *Storage) login() error {
 		s.logger.Errorw(
 			"[ERROR] during vault login using approle credentials",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
 			"response_body", response.String(),
 		)
@@ -127,7 +127,7 @@ func (s *Storage) logout() error {
 			"[ERROR] during vault login using approle credentials",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
 			"response_body", response.String(),
 		)
@@ -138,7 +138,7 @@ func (s *Storage) logout() error {
 		s.logger.Errorw(
 			"[ERROR] during vault login using approle credentials",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.config.GetApproleLoginPath()),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", response.StatusCode(),
 			"response_body", response.String(),
 		)

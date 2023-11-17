@@ -70,7 +70,7 @@ func (s *Storage) Store(_ context.Context, key string, value []byte) error {
 			"[ERROR] Unable to store certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -81,7 +81,7 @@ func (s *Storage) Store(_ context.Context, key string, value []byte) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to store certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -102,7 +102,7 @@ func (s *Storage) Load(_ context.Context, key string) ([]byte, error) {
 			"[ERROR] Unable to load certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -113,7 +113,7 @@ func (s *Storage) Load(_ context.Context, key string) ([]byte, error) {
 		s.logger.Errorw(
 			"[ERROR] Unable to load certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -137,7 +137,7 @@ func (s *Storage) Delete(_ context.Context, key string) error {
 			"[ERROR] Unable to delete certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -148,7 +148,7 @@ func (s *Storage) Delete(_ context.Context, key string) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to delete certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -196,7 +196,7 @@ func (s *Storage) List(ctx context.Context, prefix string, recursive bool) ([]st
 			"[ERROR] Unable to list certificates",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultMetadataPath(prefix)),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -247,7 +247,7 @@ func (s *Storage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error)
 			"[ERROR] Unable to stat certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -258,7 +258,7 @@ func (s *Storage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error)
 		s.logger.Errorw(
 			"[ERROR] Unable to stat certificate",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -288,7 +288,7 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 				"[ERROR] Unable to get lock",
 				"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(lock)),
 				"error", err.Error(),
-				"vault_errors", s.vaultErrorString(errResponse),
+				"vault_errors", vaultErrorString(errResponse),
 				"response_code", resp.StatusCode(),
 				"response_body", resp.String(),
 			)
@@ -328,7 +328,7 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 			"[ERROR] Unable to create lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(lock)),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -339,7 +339,7 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to create lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -359,7 +359,7 @@ func (s *Storage) Unlock(_ context.Context, key string) error {
 			"[ERROR] Unable to remove lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(lock)),
 			"error", err.Error(),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -370,7 +370,7 @@ func (s *Storage) Unlock(_ context.Context, key string) error {
 		s.logger.Errorw(
 			"[ERROR] Unable to remove lock",
 			"url", Sprintf("%s%s", s.config.GetVaultBaseUrl(), s.vaultDataPath(key)),
-			"vault_errors", s.vaultErrorString(errResponse),
+			"vault_errors", vaultErrorString(errResponse),
 			"response_code", resp.StatusCode(),
 			"response_body", resp.String(),
 		)
@@ -391,7 +391,7 @@ func (s *Storage) vaultMetadataPath(key string) string {
 	return vaultCertMagicCertificateMetadataPathFormat.String(s.config.GetSecretsPath(), s.config.GetPathPrefix(), key)
 }
 
-func (s *Storage) vaultErrorString(resp *errorResponse) string {
+func vaultErrorString(resp *errorResponse) string {
 	if len(resp.Errors) > 0 {
 		return resp.Error().Error()
 	}
