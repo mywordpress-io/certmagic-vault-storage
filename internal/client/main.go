@@ -29,44 +29,42 @@ type Client struct {
 	resty *resty.Client
 }
 
-func (c *Client) SetToken(token string) *Client {
-	c.resty.SetHeader("X-Vault-Token", token)
-	return c
-}
-
 func (c *Client) SetHostUrl(url string) *Client {
 	c.resty.SetHostURL(url)
 	return c
 }
 
-func (c *Client) Get(path string, result, error interface{}) (*resty.Response, error) {
-	return c.resty.R().SetResult(result).SetError(error).Get(path)
+func (c *Client) Get(token, path string, result, error interface{}) (*resty.Response, error) {
+	return c.resty.R().SetHeader("X-Vault-Token", token).SetResult(result).SetError(error).Get(path)
 }
 
-func (c *Client) List(path string, result, error interface{}) (*resty.Response, error) {
-	return c.resty.R().SetResult(result).SetError(error).Execute("LIST", path)
+func (c *Client) List(token, path string, result, error interface{}) (*resty.Response, error) {
+	return c.resty.R().SetHeader("X-Vault-Token", token).SetResult(result).SetError(error).Execute("LIST", path)
 }
 
-func (c *Client) Put(path string, body, result, error interface{}) (*resty.Response, error) {
-	return c.resty.R().SetBody(map[string]interface{}{"data": body}).SetResult(result).SetError(error).Put(path)
+func (c *Client) Put(token, path string, body, result, error interface{}) (*resty.Response, error) {
+	return c.resty.R().SetHeader("X-Vault-Token", token).SetBody(map[string]interface{}{"data": body}).SetResult(result).SetError(error).Put(path)
 }
 
-func (c *Client) Post(path string, body, result, error interface{}) (*resty.Response, error) {
-	return c.resty.R().SetBody(map[string]interface{}{"data": body}).SetResult(result).SetError(error).Post(path)
+func (c *Client) Post(token, path string, body, result, error interface{}) (*resty.Response, error) {
+	return c.resty.R().SetHeader("X-Vault-Token", token).SetBody(map[string]interface{}{"data": body}).SetResult(result).SetError(error).Post(path)
 }
 
 func (c *Client) ApproleLogin(path string, body, result, error interface{}) (*resty.Response, error) {
 	return c.resty.R().SetBody(body).SetResult(result).SetError(error).Post(path)
 }
 
-func (c *Client) ApproleLogout(path string, body, result, error interface{}) (*resty.Response, error) {
-	return c.resty.R().SetBody(body).SetResult(result).SetError(error).Post(path)
+func (c *Client) ApproleLogout(token, path string, body, result, error interface{}) (*resty.Response, error) {
+	return c.resty.R().SetHeader("X-Vault-Token", token).SetBody(body).SetResult(result).SetError(error).Post(path)
 }
 
-func (c *Client) Delete(path string, result, error interface{}) (*resty.Response, error) {
-	return c.resty.R().SetResult(result).SetError(error).Delete(path)
+func (c *Client) Delete(token, path string, result, error interface{}) (*resty.Response, error) {
+	return c.resty.R().SetHeader("X-Vault-Token", token).SetResult(result).SetError(error).Delete(path)
 }
 
-func (c *Client) Merge(path string, body, result, error interface{}) (*resty.Response, error) {
-	return c.resty.R().SetHeader("Content-Type", "application/merge-patch+json").SetBody(map[string]interface{}{"data": body}).SetResult(result).SetError(error).Patch(path)
+func (c *Client) Merge(token, path string, body, result, error interface{}) (*resty.Response, error) {
+	return c.resty.R().SetHeaders(map[string]string{
+		"Content-Type":  "application/merge-patch+json",
+		"X-Vault-Token": token,
+	}).SetBody(map[string]interface{}{"data": body}).SetResult(result).SetError(error).Patch(path)
 }

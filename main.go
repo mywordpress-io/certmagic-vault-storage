@@ -64,7 +64,7 @@ func (s *Storage) Store(_ context.Context, key string, value []byte) error {
 	}
 	result := &response{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Post(s.vaultDataPath(key), secret, result, errResponse)
+	resp, err := s.client.Post(s.getToken(), s.vaultDataPath(key), secret, result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to store certificate",
@@ -96,7 +96,7 @@ func (s *Storage) Load(_ context.Context, key string) ([]byte, error) {
 
 	result := &response{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
+	resp, err := s.client.Get(s.getToken(), s.vaultDataPath(key), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to load certificate",
@@ -131,7 +131,7 @@ func (s *Storage) Delete(_ context.Context, key string) error {
 
 	result := &response{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Delete(s.vaultMetadataPath(key), result, errResponse)
+	resp, err := s.client.Delete(s.getToken(), s.vaultMetadataPath(key), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to delete certificate",
@@ -166,7 +166,7 @@ func (s *Storage) Exists(_ context.Context, key string) bool {
 
 	result := &response{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
+	resp, err := s.client.Get(s.getToken(), s.vaultDataPath(key), result, errResponse)
 	if err != nil {
 		return false
 	}
@@ -190,7 +190,7 @@ func (s *Storage) List(ctx context.Context, prefix string, recursive bool) ([]st
 
 	result := &listResponse{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).List(s.vaultMetadataPath(prefix), result, errResponse)
+	resp, err := s.client.List(s.getToken(), s.vaultMetadataPath(prefix), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to list certificates",
@@ -241,7 +241,7 @@ func (s *Storage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error)
 	// Get the secret
 	result := &response{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(key), result, errResponse)
+	resp, err := s.client.Get(s.getToken(), s.vaultDataPath(key), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to stat certificate",
@@ -282,7 +282,7 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 		// Get the secret
 		getResult := &response{}
 		errResponse := &errorResponse{}
-		resp, err := s.client.SetToken(s.getToken()).Get(s.vaultDataPath(lock), getResult, errResponse)
+		resp, err := s.client.Get(s.getToken(), s.vaultDataPath(lock), getResult, errResponse)
 		if err != nil {
 			s.logger.Errorw(
 				"[ERROR] Unable to get lock",
@@ -322,7 +322,7 @@ func (s *Storage) Lock(ctx context.Context, key string) error {
 	}
 	result := &response{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Post(s.vaultDataPath(lock), secret, result, errResponse)
+	resp, err := s.client.Post(s.getToken(), s.vaultDataPath(lock), secret, result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to create lock",
@@ -353,7 +353,7 @@ func (s *Storage) Unlock(_ context.Context, key string) error {
 	lock := Sprintf("%s.lock", key)
 	result := &response{}
 	errResponse := &errorResponse{}
-	resp, err := s.client.SetToken(s.getToken()).Delete(s.vaultMetadataPath(lock), result, errResponse)
+	resp, err := s.client.Delete(s.getToken(), s.vaultMetadataPath(lock), result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] Unable to remove lock",
