@@ -121,7 +121,7 @@ func (s *Storage) logout() error {
 	body := &struct{}{}
 	result := &successResponse{}
 	errResponse := &errorResponse{}
-	response, err := s.client.SetHostUrl(s.config.GetVaultBaseUrl()).SetToken(s.getToken()).ApproleLogout(s.config.GetApproleLogoutPath(), body, result, errResponse)
+	response, err := s.client.SetHostUrl(s.config.GetVaultBaseUrl()).ApproleLogout(s.getToken(), s.config.GetApproleLogoutPath(), body, result, errResponse)
 	if err != nil {
 		s.logger.Errorw(
 			"[ERROR] during vault login using approle credentials",
